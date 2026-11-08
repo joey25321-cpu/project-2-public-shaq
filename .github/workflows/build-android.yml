@@ -1,0 +1,49 @@
+# Builds the Android APK in the cloud. Run it from the GitHub "Actions" tab
+# (Build Android APK -> Run workflow). The APK appears under "Artifacts".
+#
+# One-time setup (needs a Unity account; see README "Build in the cloud"):
+#   Repository Settings -> Secrets and variables -> Actions -> New repository secret
+#     UNITY_LICENSE   contents of your Unity_lic.ulf file
+#     UNITY_EMAIL     your Unity account email
+#     UNITY_PASSWORD  your Unity account password
+name: Build Android APK
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          android: false
+          large-packages: false
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Android-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-Android-
+
+      - name: Build with Unity
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: Android
+          buildName: DeadMiles
+          buildMethod: DeadMiles.EditorTools.BuildTools.BuildCI
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeadMiles-APK
+          path: build
+          if-no-files-found: error
